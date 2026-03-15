@@ -15,11 +15,19 @@ const client = axios.create({
 // don't have to pass it manually every time
 client.interceptors.request.use((config) => {
   const userId = localStorage.getItem('smartspend_user_id')
-  if (userId && config.params === undefined) {
-    config.params = { user_id: userId }
-  } else if (userId && config.params) {
-    config.params.user_id = config.params.user_id || userId
+  if (!userId) return config
+  
+  // Only add user_id as query param if the URL doesn't already contain it as a path segment
+  const urlContainsUserId = config.url?.includes(userId)
+  if (!urlContainsUserId) {
+    config.params = { ...config.params, user_id: config.params?.user_id || userId }
   }
+  
+  // Remove explicit user_id: undefined params (cleanup)
+  if (config.params?.user_id === undefined) {
+    delete config.params.user_id
+  }
+  
   return config
 })
 
