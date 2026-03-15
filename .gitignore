@@ -1,0 +1,44 @@
+# Environment files — NEVER commit these
+.env
+.env.local
+.env.production
+backend/.env
+frontend/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+*.egg-info/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.next/
+
+# Database
+*.db
+*.sqlite3
+
+# Logs — may contain PII
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store
+**/.DS_Store
