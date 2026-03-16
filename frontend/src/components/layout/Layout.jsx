@@ -32,6 +32,7 @@ export function Navbar() {
           <NavLink to="/goals" className={linkClass}>Goals</NavLink>
           <NavLink to="/achievements" className={linkClass}>Achievements</NavLink>
           <NavLink to="/recap" className={linkClass}>Recap</NavLink>
+          <NavLink to="/learning" className={linkClass}>Learning</NavLink>
           <button
             onClick={handleReset}
             className="ml-2 px-3 py-2 text-sm text-gray-400 hover:text-red-500 transition-colors"

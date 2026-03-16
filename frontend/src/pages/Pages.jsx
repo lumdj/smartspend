@@ -476,7 +476,7 @@ export function Recap() {
 // Demo.jsx — control panel
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { demoApi, getUserId } from '../api/client'
+import client, { demoApi, getUserId } from '../api/client'
 
 export function Demo() {
   const [status, setStatus] = useState('')
@@ -532,13 +532,21 @@ export function Demo() {
           </div>
 
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Trigger Events</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Trigger Education Cards</p>
             <div className="space-y-2">
-              {btn('Spike dining spend (2.5x)', () => demoApi.spikeCategory('dining', 2.5))}
-              {btn('Spike shopping spend (2.5x)', () => demoApi.spikeCategory('shopping', 2.5))}
-              {btn('Reset + reload Alex', () => demoApi.reset('alex'))}
-              {btn('Reset + reload Jordan', () => demoApi.reset('jordan'))}
-              {btn('Reset + reload Taylor', () => demoApi.reset('taylor'))}
+              {[
+                'utilization_over_50',
+                'utilization_over_70', 
+                'first_goal_created',
+                'dining_spike',
+                'carrying_balance_detected',
+                'first_month_complete',
+                'stress_level_high',
+              ].map(key =>
+                btn(`Card: ${key}`, () =>
+                  client.post(`/demo/trigger-education-card?user_id=${userId}&trigger_key=${key}`, null, { params: { user_id: undefined } })
+                )
+              )}
             </div>
           </div>
 
@@ -555,6 +563,203 @@ export function Demo() {
             {status}
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Learning.jsx
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { useEducationCards } from '../hooks/useData'
+
+export function Learning() {
+  const { cards, loading, markViewed, submitFeedback } = useEducationCards()
+  const [expanded, setExpanded] = useState(null)
+
+  const handleExpand = async (card) => {
+    if (expanded === card.id) { setExpanded(null); return }
+    setExpanded(card.id)
+    if (!card.viewed_at) await markViewed(card.id)
+  }
+
+  const parseContent = (text) => {
+    if (!text) return text
+    const parts = text.split(/\[\[([^\]|]+)\|([^\]]+)\]\]/)
+    return parts.map((part, i) => {
+      if (i % 3 === 1) return (
+        <span key={i} className="font-medium underline decoration-dotted decoration-green-500 underline-offset-2 cursor-help text-green-700" title={parts[i+1]}>
+          {part}
+        </span>
+      )
+      if (i % 3 === 2) return null
+      return part
+    })
+  }
+
+  const viewedCount = cards.filter(c => c.viewed_at).length
+  const progressPct = Math.min((viewedCount / 5) * 100, 100)
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-48">
+      <div className="flex gap-1">
+        {[0,1,2].map(i => (
+          <div key={i} className="w-2 h-2 rounded-full bg-green-300 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+        ))}
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="space-y-5">
+
+      {/* Header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-2xl font-black text-gray-900 tracking-tight">Learning</h1>
+          <p className="text-sm text-gray-400 mt-0.5">
+            {cards.length} card{cards.length !== 1 ? 's' : ''} · {viewedCount} read
+          </p>
+        </div>
+      </div>
+
+      {/* Achievement progress bar */}
+      {cards.length > 0 && viewedCount < 5 && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center text-sm">🏆</div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">Knowledge Seeker</p>
+                <p className="text-xs text-gray-400">Read {5 - viewedCount} more card{5 - viewedCount !== 1 ? 's' : ''} to earn this</p>
+              </div>
+            </div>
+            <span className="text-sm font-bold text-gray-700">{viewedCount}/5</span>
+          </div>
+          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full bg-green-400 transition-all duration-700"
+              style={{ width: `${(viewedCount / 5) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {cards.length === 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center text-2xl mx-auto mb-4">📚</div>
+          <p className="font-semibold text-gray-700 mb-1">Your library is empty</p>
+          <p className="text-sm text-gray-400 max-w-xs mx-auto leading-relaxed">
+            Cards unlock as you use the app — when you create a goal, hit a spending milestone, or cross a credit threshold.
+          </p>
+        </div>
+      )}
+
+      {/* Cards */}
+      <div className="space-y-3">
+        {cards.map((card, idx) => {
+          const isOpen = expanded === card.id
+          const isRead = !!card.viewed_at
+
+          return (
+            <div
+              key={card.id}
+              className={`rounded-2xl border overflow-hidden transition-all duration-200 ${
+                isOpen
+                  ? 'border-green-200 bg-white shadow-sm shadow-green-50'
+                  : 'border-gray-100 bg-white hover:border-gray-200'
+              }`}
+            >
+              {/* Card header */}
+              <button
+                onClick={() => handleExpand(card)}
+                className="w-full text-left px-5 py-4 flex items-center gap-4"
+              >
+                {/* Number */}
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${
+                  isRead ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {isRead ? '✓' : idx + 1}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 text-sm truncate">{card.title}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 truncate">{card.concept}</p>
+                </div>
+
+                {/* Right side */}
+                <div className="flex items-center gap-3 shrink-0">
+                  {!isRead && (
+                    <span className="text-xs font-medium text-white bg-green-500 px-2 py-0.5 rounded-full">New</span>
+                  )}
+                  <div className={`w-5 h-5 rounded-full border border-gray-200 flex items-center justify-center transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"/>
+                    </svg>
+                  </div>
+                </div>
+              </button>
+
+              {/* Expanded body */}
+              {isOpen && (
+                <div className="px-5 pb-5">
+                  <div className="pt-1 pb-4 border-t border-gray-50">
+
+                    {/* Main content */}
+                    <div className="text-sm text-gray-600 leading-relaxed mt-4 space-y-3">
+                      {card.content.split('\n\n').filter(Boolean).map((para, i) => (
+                        <p key={i}>{parseContent(para)}</p>
+                      ))}
+                    </div>
+
+                    {/* Stat callout */}
+                    {card.one_number && (
+                      <div className="mt-5 flex items-center gap-3 bg-green-50 rounded-xl px-4 py-3">
+                        <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
+                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M7 1v6m0 0l-2.5-2.5M7 7l2.5-2.5" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round"/>
+                            <path d="M2 10.5h10" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round"/>
+                          </svg>
+                        </div>
+                        <p className="text-sm font-semibold text-green-800">{card.one_number}</p>
+                      </div>
+                    )}
+
+                    {/* Action item */}
+                    {card.one_action && (
+                      <div className="mt-3 bg-gray-50 rounded-xl px-4 py-3">
+                        <p className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Next step</p>
+                        <p className="text-sm text-gray-700">{card.one_action}</p>
+                      </div>
+                    )}
+
+                    {/* Footer */}
+                    <div className="mt-4 flex items-center justify-between">
+                      <p className="text-xs text-gray-300">{new Date(card.triggered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+
+                      {card.was_helpful === null || card.was_helpful === undefined ? (
+                        <div className="flex items-center gap-3">
+                          <p className="text-xs text-gray-400">Helpful?</p>
+                          <button onClick={() => submitFeedback(card.id, true)} className="flex items-center gap-1 text-xs text-gray-400 hover:text-green-600 transition-colors px-2 py-1 rounded-lg hover:bg-green-50">
+                            👍 Yes
+                          </button>
+                          <button onClick={() => submitFeedback(card.id, false)} className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition-colors px-2 py-1 rounded-lg hover:bg-red-50">
+                            👎 No
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-400">{card.was_helpful ? '👍 Helpful' : '👎 Not helpful'}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

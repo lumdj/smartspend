@@ -133,6 +133,9 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ── Routers ───────────────────────────────────────────────────────────────────
 
 from routers.transactions import router as transactions_router
+from routers.education import router as education_router
+from routers.health_history import router as health_history_router
+
 from routers.remaining_routers import (
     insights_router,
     reports_router,
@@ -144,12 +147,14 @@ from routers.remaining_routers import (
 
 app.include_router(profile.router)
 app.include_router(transactions_router)
+app.include_router(education_router)
 app.include_router(insights_router)
 app.include_router(reports_router)
 app.include_router(goals_router)
 app.include_router(nudges_router)
 app.include_router(achievements_router)
 app.include_router(demo_router)
+app.include_router(health_history_router)
 
 
 # ── Core Endpoints ────────────────────────────────────────────────────────────

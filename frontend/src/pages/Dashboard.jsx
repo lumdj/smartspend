@@ -3,35 +3,7 @@ import { useProfile } from '../hooks/useProfile'
 import { useNudges } from '../hooks/useData'
 import { useGoals } from '../hooks/useData'
 import { Link } from 'react-router-dom'
-
-function HealthScoreRing({ score }) {
-  const color = score >= 75 ? 'text-green-600' : score >= 50 ? 'text-yellow-500' : 'text-red-500'
-  const bg = score >= 75 ? 'bg-green-50' : score >= 50 ? 'bg-yellow-50' : 'bg-red-50'
-  const label = score >= 75 ? 'Healthy' : score >= 50 ? 'Needs Attention' : 'Action Required'
-
-  return (
-    <div className={`${bg} rounded-2xl p-6 flex items-center gap-4`}>
-      <div className="relative w-20 h-20 flex items-center justify-center">
-        <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-          <circle cx="40" cy="40" r="34" fill="none" stroke="#e5e7eb" strokeWidth="8" />
-          <circle
-            cx="40" cy="40" r="34" fill="none"
-            stroke={score >= 75 ? '#16a34a' : score >= 50 ? '#eab308' : '#ef4444'}
-            strokeWidth="8"
-            strokeDasharray={`${(score / 100) * 213.6} 213.6`}
-            strokeLinecap="round"
-          />
-        </svg>
-        <span className={`absolute text-xl font-black ${color}`}>{score}</span>
-      </div>
-      <div>
-        <p className="text-sm text-gray-500">Financial Health</p>
-        <p className={`text-lg font-bold ${color}`}>{label}</p>
-        <p className="text-xs text-gray-400 mt-0.5">Updated this billing cycle</p>
-      </div>
-    </div>
-  )
-}
+import HealthScoreChart from '../components/dashboard/HealthScoreChart'
 
 function AlertBadge({ severity }) {
   const styles = {
@@ -147,34 +119,29 @@ export default function Dashboard() {
         <p className="text-gray-500 text-sm mt-0.5">Here's your financial picture right now.</p>
       </div>
 
-      {/* Top row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {insights && <HealthScoreRing score={insights.health_score} />}
-
-        <div className="bg-white rounded-2xl border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 mb-1">This Billing Period</p>
-          <p className="text-3xl font-black text-gray-900">
-            ${Number(summary?.total_spend || 0).toFixed(0)}
-          </p>
-          <div className="flex gap-4 mt-3">
-            <div>
-              <p className="text-xs text-gray-400">Essential</p>
-              <p className="text-sm font-semibold text-gray-700">${Number(summary?.essential_spend || 0).toFixed(0)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400">Discretionary</p>
-              <p className="text-sm font-semibold text-gray-700">${Number(summary?.discretionary_spend || 0).toFixed(0)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400">Utilization</p>
-              <p className={`text-sm font-semibold ${
-                (summary?.utilization_rate || 0) > 70 ? 'text-red-600' :
-                (summary?.utilization_rate || 0) > 50 ? 'text-yellow-600' : 'text-green-600'
-              }`}>{summary?.utilization_rate?.toFixed(1) || 0}%</p>
-            </div>
+      <HealthScoreChart />
+      {/* Billing period stats */}
+      {summary && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <p className="text-xs text-gray-400 mb-1"> Spending This Period</p>
+            <p className="text-xl font-black text-gray-900">${Number(summary.total_spend || 0).toFixed(0)}</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <p className="text-xs text-gray-400 mb-1">Discretionary</p>
+            <p className="text-xl font-black text-gray-900">${Number(summary.discretionary_spend || 0).toFixed(0)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">${Number(summary.essential_spend || 0).toFixed(0)} essential</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <p className="text-xs text-gray-400 mb-1">Utilization</p>
+            <p className={`text-xl font-black ${
+              (summary.utilization_rate || 0) > 70 ? 'text-red-600' :
+              (summary.utilization_rate || 0) > 50 ? 'text-yellow-500' : 'text-green-600'
+            }`}>{summary.utilization_rate?.toFixed(1) || 0}%</p>
+            <p className="text-xs text-gray-400 mt-0.5">of credit limit</p>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Alerts */}
       {alerts.length > 0 && (

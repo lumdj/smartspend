@@ -10,6 +10,7 @@ import Achievements from './pages/Achievements'
 import Recap from './pages/Recap'
 import Demo from './pages/Demo'
 import Layout from './components/layout/Layout'
+import Learning from './pages/Learning'
 
 export default function App() {
   const [hasProfile, setHasProfile] = useState(null) // null = loading
@@ -68,6 +69,7 @@ export default function App() {
           <Route path="goals" element={<Goals />} />
           <Route path="achievements" element={<Achievements />} />
           <Route path="recap" element={<Recap />} />
+          <Route path="learning" element={<Learning />} />
         </Route>
 
         {/* Demo control panel — unlisted */}

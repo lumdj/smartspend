@@ -110,6 +110,15 @@ export const achievementsApi = {
   list: () => client.get('/achievements/'),
 }
 
+// ── Education Cards ───────────────────────────────────────────────────────────
+
+export const educationApi = {
+  list: () => client.get('/education/'),
+  markViewed: (cardId) => client.patch(`/education/${cardId}/viewed`),
+  feedback: (cardId, wasHelpful) =>
+    client.patch(`/education/${cardId}/feedback`, { was_helpful: wasHelpful }),
+}
+
 // ── Demo ──────────────────────────────────────────────────────────────────────
 
 export const demoApi = {
@@ -138,3 +147,9 @@ export const setUserId = (id) => localStorage.setItem('smartspend_user_id', id)
 export const clearUserId = () => localStorage.removeItem('smartspend_user_id')
 
 export default client
+
+export const healthHistoryApi = {
+  get: (months = 6) => client.get('/health-history/', { 
+    params: { months, user_id: getUserId() } 
+  }),
+}

@@ -547,3 +547,69 @@ def spike_category(
         "message": f"Spiked {len(txns)} '{category}' transactions by {multiplier}x",
         "transactions_affected": len(txns),
     }
+
+
+@demo_router.post("/trigger-education-card")
+def trigger_education_card(
+    user_id: str = Query(...),
+    trigger_key: str = Query(...),
+    db: Session = Depends(get_session),
+):
+    """
+    Manually fire an education card trigger for demo purposes.
+    Generates a Claude-powered card and queues it for the user.
+
+    Available trigger_keys:
+    - utilization_over_50
+    - utilization_over_70
+    - first_goal_created
+    - goal_halfway
+    - goal_completed
+    - first_full_balance_month
+    - carrying_balance_detected
+    - dining_spike
+    - subscription_count_high
+    - income_overspend
+    - stress_level_high
+    - first_month_complete
+    """
+    from services.education import create_education_card_for_user
+    from services.claude_service import ClaudeService
+    from models.orm import UserProfile
+    from sqlmodel import select as sql_select
+
+    uid = _uid(user_id)
+
+    if not db.get(User, uid):
+        raise HTTPException(status_code=404, detail="User not found")
+
+    profile = db.exec(
+        sql_select(UserProfile).where(UserProfile.user_id == uid)
+    ).first()
+
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    claude = ClaudeService()
+
+    card = create_education_card_for_user(
+        session=db,
+        user_id=uid,
+        trigger_key=trigger_key,
+        profile=profile,
+        summary={"total_spend": 800, "utilization_rate": 67, "top_categories": []},
+        context={"stress_level": profile.stress_level},
+        claude_service=claude,
+    )
+
+    if not card:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Could not generate card — trigger_key '{trigger_key}' may not exist or card already received"
+        )
+
+    return {
+        "message": f"Education card triggered: {trigger_key}",
+        "card_id": str(card.id),
+        "title": card.title,
+    }

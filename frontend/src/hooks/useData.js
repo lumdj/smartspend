@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { transactionsApi, insightsApi, reportsApi, goalsApi, nudgesApi, achievementsApi } from '../api/client'
+import { transactionsApi, insightsApi, reportsApi, goalsApi, nudgesApi, achievementsApi, educationApi } from '../api/client'
 
 // ── Transactions ──────────────────────────────────────────────────────────────
 
@@ -182,4 +182,60 @@ export function useAchievements() {
   }, [])
 
   return { achievements, totalPoints, earnedCount, loading }
+}
+
+// ── Education Cards ───────────────────────────────────────────────────────────
+
+export function useEducationCards() {
+  const [cards, setCards] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetch = useCallback(async () => {
+    try {
+      setLoading(true)
+      const res = await educationApi.list()
+      setCards(res.data.cards)
+    } catch (err) {
+      console.error('Failed to fetch education cards:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetch() }, [fetch])
+
+  const markViewed = async (cardId) => {
+    const res = await educationApi.markViewed(cardId)
+    setCards(prev => prev.map(c =>
+      c.id === cardId ? { ...c, viewed_at: new Date().toISOString() } : c
+    ))
+    // If achievement was unlocked, show a brief alert
+    if (res.data.achievement_unlocked) {
+      const a = res.data.achievement_unlocked
+      alert(`${a.icon} Achievement unlocked: ${a.name} (+${a.points} pts)`)
+    }
+  }
+
+  const submitFeedback = async (cardId, wasHelpful) => {
+    await educationApi.feedback(cardId, wasHelpful)
+    setCards(prev => prev.map(c =>
+      c.id === cardId ? { ...c, was_helpful: wasHelpful } : c
+    ))
+  }
+
+  return { cards, loading, refetch: fetch, markViewed, submitFeedback }
+}
+
+export function useHealthHistory(months = 6) {
+  const [history, setHistory] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    healthHistoryApi.get(months)
+      .then(res => setHistory(res.data))
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [months])
+
+  return { history, loading }
 }
