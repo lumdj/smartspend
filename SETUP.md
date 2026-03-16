@@ -4,7 +4,7 @@
 
 - Python 3.11+
 - Node.js 18+
-- PostgreSQL 15+ (local) or a Render PostgreSQL instance
+- PostgreSQL 15+
 - An Anthropic API key ([console.anthropic.com](https://console.anthropic.com))
 - Git
 
@@ -39,17 +39,22 @@ cp .env.example .env
 Open `.env` and fill in:
 
 ```env
-DATABASE_URL=postgresql://postgres:password@localhost:5432/smartspend
+DATABASE_URL=postgresql://your_username@localhost:5432/smartspend
 ANTHROPIC_API_KEY=sk-ant-...
 DATA_SOURCE=synthetic
+ENVIRONMENT=development
+ALLOWED_ORIGINS=http://localhost:5173
 ```
 
-> **Note:** Never commit `.env` to GitHub. It is already in `.gitignore`.
+> **Mac note:** Homebrew PostgreSQL uses your Mac username as the default role, not `postgres`. Run `whoami` to get your username and use that in the DATABASE_URL. If you want to use `postgres`, run: `psql -U your_username -c "CREATE ROLE postgres WITH SUPERUSER LOGIN;"`
 
 ### Create the local database
 
 ```bash
-# Using psql
+# Using your Mac username
+psql -U your_username -c "CREATE DATABASE smartspend;"
+
+# Or if you created the postgres role
 psql -U postgres -c "CREATE DATABASE smartspend;"
 ```
 
@@ -59,15 +64,26 @@ psql -U postgres -c "CREATE DATABASE smartspend;"
 alembic upgrade head
 ```
 
-This creates all 13 tables and seeds the achievements catalog and education card triggers.
+You should see:
+```
+INFO  [alembic.runtime.migration] Running upgrade  -> 001_initial_schema
+```
 
-### Seed synthetic transaction data
+### Seed the database
 
 ```bash
 python data/seed.py
 ```
 
-This loads 3 pre-configured demo users (Alex, Jordan, Taylor) with 90 days of realistic transaction history.
+Expected output:
+```
+Seeding achievements...
+  ✓ 15 achievements seeded
+Seeding education card triggers...
+  ✓ 12 education card triggers seeded
+
+Seed complete.
+```
 
 ### Start the backend
 
@@ -75,7 +91,7 @@ This loads 3 pre-configured demo users (Alex, Jordan, Taylor) with 90 days of re
 uvicorn main:app --reload
 ```
 
-API is running at `http://localhost:8000`
+API running at `http://localhost:8000`
 Interactive docs at `http://localhost:8000/docs`
 
 ---
@@ -83,50 +99,59 @@ Interactive docs at `http://localhost:8000/docs`
 ## 3. Frontend Setup
 
 ```bash
-# New terminal from project root
 cd frontend
 npm install
-```
-
-### Configure environment variables
-
-```bash
 cp .env.example .env
 ```
 
+`.env` should contain:
 ```env
 VITE_API_URL=http://localhost:8000
 ```
-
-### Start the frontend
 
 ```bash
 npm run dev
 ```
 
-App is running at `http://localhost:5173`
+App running at `http://localhost:5173`
 
 ---
 
-## 4. Verify Everything is Working
+## 4. Verify Everything Works
 
-1. Open `http://localhost:5173` — you should see the SmartSpend onboarding screen
-2. Open `http://localhost:8000/docs` — you should see the FastAPI Swagger UI
-3. In Swagger, call `GET /transactions/users` — you should see Alex, Jordan, and Taylor
+Open `http://localhost:5173` — you should see the onboarding flow.
 
-If transactions are empty, re-run `python data/seed.py` from the backend directory.
+Complete onboarding with any profile. After submitting you'll land on the dashboard with synthetic transaction data already loaded.
+
+Quick API verification:
+```bash
+curl http://localhost:8000/health
+```
+Expected: `{"status":"healthy","adapter":"synthetic","adapter_healthy":true,...}`
 
 ---
 
 ## 5. Demo Control Panel
 
-Navigate to `http://localhost:5173/demo` to access the demo control panel.
+Navigate to `http://localhost:5173/demo` — this page is not linked in the nav.
 
-This page is not linked in the main navigation — it's for live demonstrations only. Use it to:
-- Switch between pre-configured personas
-- Trigger spending alerts and education cards
-- Run monthly recaps
+Use it to:
+- Switch between Alex, Jordan, and Taylor spending personas
+- Spike category spending to trigger alerts
+- Fire education card triggers to populate the Learning tab
 - Reset user data between demos
+
+---
+
+## 6. Dependency Notes
+
+The following versions are pinned for compatibility — do not upgrade without testing:
+
+```
+httpx==0.27.2          # Required for Anthropic SDK compatibility
+```
+
+If you add packages, always run `pip freeze > requirements.txt` before committing so Render gets identical versions.
 
 ---
 
@@ -134,45 +159,52 @@ This page is not linked in the main navigation — it's for live demonstrations 
 
 ### Render (Backend + Database)
 
-1. Create a new **PostgreSQL** instance on Render — copy the `DATABASE_URL`
-2. Create a new **Web Service** on Render:
+1. Create a **PostgreSQL** instance on Render — copy the `DATABASE_URL`
+2. Create a **Web Service**:
    - Root directory: `backend`
    - Build command: `pip install -r requirements.txt`
-   - Start command: `alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT`
-3. Add environment variables in Render dashboard:
+   - Start command: `alembic upgrade head && python data/seed.py && uvicorn main:app --host 0.0.0.0 --port $PORT`
+3. Add environment variables:
    - `DATABASE_URL` — from step 1
    - `ANTHROPIC_API_KEY` — your key
    - `DATA_SOURCE` — `synthetic`
-4. After first deploy, run the seed script via Render Shell: `python data/seed.py`
+   - `ENVIRONMENT` — `production`
+   - `ALLOWED_ORIGINS` — your Vercel URL
+4. Deploy
 
 ### Vercel (Frontend)
 
-1. Import your GitHub repo in Vercel
+1. Import your GitHub repo
 2. Set root directory to `frontend`
-3. Add environment variable:
-   - `VITE_API_URL` — your Render backend URL (e.g. `https://smartspend-api.onrender.com`)
+3. Add environment variable: `VITE_API_URL` = your Render backend URL
 4. Deploy
 
-### Keeping the Backend Awake (Free Tier)
+### Keep Backend Alive (Free Tier)
 
-Render's free tier spins down after 15 minutes of inactivity, causing a ~30 second cold start. To prevent this during your demo period:
+Render free tier spins down after 15 minutes of inactivity — the first request after that takes ~30 seconds. Prevent this for your demo:
 
-1. Create a free account at [uptimerobot.com](https://uptimerobot.com)
-2. Add a new HTTP monitor pointing to `https://your-app.onrender.com/health`
-3. Set interval to 10 minutes
+1. Sign up at [uptimerobot.com](https://uptimerobot.com) (free)
+2. Add HTTP monitor: `https://your-app.onrender.com/health`
+3. Set interval: 10 minutes
 
 ---
 
 ## Troubleshooting
 
-**`alembic upgrade head` fails — can't connect to database**
-Check that PostgreSQL is running locally and your `DATABASE_URL` in `.env` is correct.
+**`alembic upgrade head` fails — connection refused**
+Check PostgreSQL is running: `brew services list | grep postgresql`
 
-**`ANTHROPIC_API_KEY` errors**
-Verify the key is set in `.env` and the file is being loaded. The backend uses `python-dotenv` — make sure you're running `uvicorn` from the `backend/` directory.
+**`RuntimeError: Passing nullable is not supported`**
+You have an old version of `orm.py`. The fix is removing `nullable=` from any `Field()` that also uses `sa_column=`.
 
-**Frontend shows blank dashboard / no data**
-Make sure `VITE_API_URL` points to the running backend and the seed script has been run.
+**`Client.__init__() got an unexpected keyword argument 'proxies'`**
+httpx version conflict. Run: `pip install httpx==0.27.2`
 
-**CORS errors in browser console**
-The backend allows `localhost:5173` by default. If you're running the frontend on a different port, add it to the `allow_origins` list in `main.py`.
+**Dashboard shows no data after onboarding**
+Initial ingestion may have failed silently. In Swagger UI call `POST /transactions/ingest?user_id=YOUR_ID&persona_key=alex`
+
+**Recap page shows nothing / CORS error**
+Usually a 500 on the backend masking as CORS. Check uvicorn terminal for the actual Python error.
+
+**Education cards not appearing in Learning tab**
+Cards only generate when triggers fire. Use the demo control panel at `/demo` → "Trigger Education Cards" to fire them manually.

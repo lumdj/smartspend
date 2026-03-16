@@ -14,23 +14,29 @@ Most budgeting apps give you data without direction. You can see that you spent 
 
 ## Features
 
+### 📈 Financial Health Score + Trend Chart
+A 0–100 health score computed from utilization, spending mix, and income ratio. A live area chart shows your score trend over the past 6 months with a directional indicator (↑ improving, ↓ declining) so you can see if you're actually making progress.
+
 ### 🧠 AI Financial Coaching
-Personalized insights powered by Claude. Every nudge explains the *why* behind the observation — not just what you did, but what it means for your credit score, your goals, and your future.
+Personalized insights powered by Claude. Every nudge explains the *why* behind the observation — not just what you did, but what it means for your credit score, your goals, and your future. Tone adapts to your stress level — gentle and encouraging for anxious users, direct and honest for confident ones.
 
 ### 📊 Spending Dashboard
-Real-time breakdown of essential vs. discretionary spending, credit utilization indicator, and a Financial Health Score (0–100) updated monthly.
+Real-time breakdown of essential vs. discretionary spending, credit utilization indicator, and billing-cycle-aware calculations.
 
 ### 🎯 Goal Tracking
 Set up to 3 active financial goals — a trip, an emergency fund, a big purchase. Link goals to spending categories and watch your savings progress update automatically. Monthly recap lets you consciously allocate savings into goal buckets.
 
-### 🏆 Achievements & Gamification
-Earn badges for real financial behavior — staying under 30% utilization, paying your full balance, hitting 50% of a goal. Achievements unlock contextual education cards that explain the concept behind the win.
-
 ### 📚 Contextual Financial Education
-No Learn tab. No articles you won't read. Financial concepts are explained inline, at the moment they're relevant to your actual situation. Credit terms are tap-to-expand. Education cards trigger when you hit meaningful milestones.
+A dedicated Learning tab surfaces AI-generated education cards triggered by your financial behavior — when you cross 50% utilization, create your first goal, or complete a month. Each card is written specifically for you with a memorable number and one concrete action. Tap any financial term for an inline tooltip definition.
+
+### 🏆 Achievements & Gamification
+Earn badges for real financial behavior — staying under 30% utilization, paying your full balance, hitting 50% of a goal, reading 5 education cards. Achievements are tracked in your profile and visible on the Achievements page.
 
 ### 🔔 Smart Nudges
-AI-generated alerts for spending spikes, credit limit proximity, and goal opportunities. Tone adapts to your stress level — gentle and encouraging for anxious users, direct and sassy for confident ones.
+AI-generated alerts for spending spikes, credit limit proximity, and goal opportunities, surfaced on the dashboard with 👍👎 feedback buttons.
+
+### 🎮 Demo Control Panel
+A hidden `/demo` route provides a control panel for live demonstrations — load pre-configured spending personas, spike category spending to trigger alerts, and fire specific education card triggers on demand.
 
 ---
 
@@ -59,28 +65,49 @@ AI-generated alerts for spending spikes, credit limit proximity, and goal opport
 
 ```
 smartspend/
-├── backend/                  # FastAPI application
-│   ├── main.py               # App entry point
-│   ├── database.py           # DB connection and session
+├── backend/
+│   ├── main.py
+│   ├── config.py
+│   ├── database.py
 │   ├── models/
-│   │   ├── orm.py            # SQLModel table definitions
-│   │   └── schemas.py        # Pydantic request/response models
-│   ├── ingestion/            # Data ingestion adapter pattern
-│   │   ├── base.py           # Abstract adapter interface
-│   │   ├── synthetic.py      # Synthetic data adapter
-│   │   ├── plaid.py          # Plaid adapter (stubbed)
-│   │   └── stripe.py         # Stripe adapter (stubbed)
-│   ├── routers/              # API route handlers
-│   ├── services/             # Business logic
-│   ├── alembic/              # Database migrations
-│   ├── data/                 # Seed data
-│   └── requirements.txt
-├── frontend/                 # React application
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   └── hooks/
-│   └── package.json
+│   │   ├── orm.py               # All 13 SQLModel table definitions
+│   │   └── schemas.py           # Pydantic request/response models
+│   ├── ingestion/               # Adapter pattern data ingestion
+│   │   ├── base.py              # Abstract adapter interface
+│   │   ├── synthetic.py         # Synthetic data (3 personas)
+│   │   ├── plaid.py             # Plaid adapter (stubbed)
+│   │   └── stripe.py            # Stripe adapter (stubbed)
+│   ├── routers/
+│   │   ├── profile.py
+│   │   ├── transactions.py
+│   │   ├── education.py         # Education cards + learning tab
+│   │   ├── health_history.py    # Health score trend chart data
+│   │   └── remaining_routers.py # insights, reports, goals, nudges, achievements, demo
+│   ├── services/
+│   │   ├── analytics.py
+│   │   ├── alerts.py
+│   │   ├── goals.py
+│   │   ├── achievements.py
+│   │   ├── education.py
+│   │   └── claude_service.py
+│   └── data/
+│       └── seed.py
+│
+├── frontend/
+│   └── src/
+│       ├── api/client.js
+│       ├── hooks/
+│       │   ├── useProfile.js
+│       │   └── useData.js
+│       ├── components/
+│       │   ├── layout/Layout.jsx
+│       │   └── dashboard/HealthScoreChart.jsx
+│       └── pages/
+│           ├── Onboarding.jsx
+│           ├── Dashboard.jsx
+│           └── Pages.jsx        # Transactions, Goals, Achievements, Recap, Learning, Demo
+│
+├── README.md
 ├── ARCHITECTURE.md
 ├── SETUP.md
 ├── USER_GUIDE.md
@@ -104,11 +131,13 @@ cd backend
 cp .env.example .env        # add your keys
 pip install -r requirements.txt
 alembic upgrade head
+python data/seed.py
 uvicorn main:app --reload
 
 # Frontend (new terminal)
 cd frontend
 npm install
+cp .env.example .env
 npm run dev
 ```
 
