@@ -1,23 +1,23 @@
 # Team Contributions
 
-## SmartSpend — [Course Name] [Semester Year]
+## SmartSpend 
 
 ---
 
 ## Team Members
 
-| Name | Role | GitHub |
+| Name | Role |
 |---|---|---|
-| [Name 1] | Project Lead / Backend | @username |
-| [Name 2] | Frontend / UI | @username |
-| [Name 3] | AI / NLP Integration | @username |
-| [Name 4] | Data / Analytics | @username |
+| Darin Lum | Project Lead / Backend |
+| Sarah Lee | Frontend / UI |
+| Darin Lum | AI / NLP Integration | 
+| Kimberly Nguyen | Data / Analytics | 
 
 ---
 
 ## Contribution Breakdown
 
-### [Name 1] — Project Lead / Backend
+### Project Lead / Backend
 
 **Primary responsibilities:**
 - Project architecture and technical decisions
@@ -36,7 +36,7 @@
 
 ---
 
-### [Name 2] — Frontend / UI
+### Frontend / UI
 
 **Primary responsibilities:**
 - React application setup (Vite + TailwindCSS)
@@ -53,7 +53,7 @@
 
 ---
 
-### [Name 3] — AI / NLP Integration
+### AI / NLP Integration
 
 **Primary responsibilities:**
 - Anthropic Claude API integration
@@ -70,7 +70,7 @@
 
 ---
 
-### [Name 4] — Data / Analytics
+### Data / Analytics
 
 **Primary responsibilities:**
 - Synthetic transaction data generator
@@ -101,6 +101,4 @@ The following were collaborative efforts across the team:
 
 ---
 
-## Notes
 
-> *Update this file with actual contribution details before submission. Be specific — vague entries like "helped with frontend" are not useful for graders or for your own portfolio.*
